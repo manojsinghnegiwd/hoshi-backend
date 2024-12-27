@@ -1,0 +1,163 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Workspace {
+  id          Int             @id @default(autoincrement())
+  name        String
+  description String?         @db.Text
+  agents      WorkspaceAgent[]
+  extensions  WorkspaceExtension[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model Extension {
+  id            Int                   @id @default(autoincrement())
+  name          String                @unique
+  description   String                @db.Text
+  version       String                // Semantic versioning
+  config        Json?                 // Default configuration options
+  workspaces    WorkspaceExtension[]
+  agents        AgentExtension[]
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+}
+
+model WorkspaceExtension {
+  id          Int       @id @default(autoincrement())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId Int
+  extension   Extension @relation(fields: [extensionId], references: [id])
+  extensionId Int
+  config      Json?     // Workspace-specific configuration
+  enabled     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId, extensionId])
+}
+
+model Agent {
+  id          Int              @id @default(autoincrement())
+  name        String
+  description String?          @db.Text
+  status      String           @default("idle") // idle, running, completed, failed
+  schedule    Schedule?        // Optional schedule for the agent
+  lastRun     DateTime?
+  nextRun     DateTime?        // Next scheduled run time
+  workspaces  WorkspaceAgent[]
+  extensions  AgentExtension[]
+  threads     Thread[]
+  memories    Memory[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model AgentExtension {
+  id          Int       @id @default(autoincrement())
+  agent       Agent     @relation(fields: [agentId], references: [id])
+  agentId     Int
+  extension   Extension @relation(fields: [extensionId], references: [id])
+  extensionId Int
+  config      Json?     // Agent-specific extension configuration
+  enabled     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([agentId, extensionId])
+}
+
+model Schedule {
+  id              Int       @id @default(autoincrement())
+  agent           Agent     @relation(fields: [agentId], references: [id])
+  agentId         Int       @unique  // One-to-one relation with Agent
+  type            ScheduleType  // "interval", "cron", "fixed"
+  interval        Int?      // Interval in minutes (for interval type)
+  cronExpression  String?   // Cron expression (for cron type)
+  fixedTime       DateTime? // Fixed time (for fixed type)
+  timezone        String    @default("UTC")
+  enabled         Boolean   @default(true)
+  metadata        Json?     // Store any additional data needed for the task
+  lastRun         DateTime?
+  nextRun         DateTime?
+  logs            ScheduleLog[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+enum ScheduleType {
+  INTERVAL
+  CRON
+  FIXED
+}
+
+model ScheduleLog {
+  id          Int       @id @default(autoincrement())
+  schedule    Schedule  @relation(fields: [scheduleId], references: [id])
+  scheduleId  Int
+  status      String    // success, failed
+  error       String?   // Error message if failed
+  metadata    Json?     // Any metadata about the run
+  startTime   DateTime
+  endTime     DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([scheduleId])
+}
+
+model WorkspaceAgent {
+  id          Int       @id @default(autoincrement())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId Int
+  agent       Agent     @relation(fields: [agentId], references: [id])
+  agentId     Int
+  config      Json?     // Workspace-specific agent configuration
+  useAllExtensions Boolean @default(true) // Whether to use all workspace extensions
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId, agentId])
+}
+
+model Thread {
+  id          Int         @id @default(autoincrement())
+  agent       Agent       @relation(fields: [agentId], references: [id])
+  agentId     Int
+  name        String
+  messages    Message[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Message {
+  id          Int         @id @default(autoincrement())
+  thread      Thread      @relation(fields: [threadId], references: [id])
+  threadId    Int
+  role        String      // system, user, assistant
+  content     String      @db.Text
+  createdAt   DateTime    @default(now())
+}
+
+model Memory {
+  id          Int       @id @default(autoincrement())
+  agent       Agent     @relation(fields: [agentId], references: [id])
+  agentId     Int
+  key         String    // identifier for the memory
+  value       Json      // flexible storage for different types of memories
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([agentId, key])
+}

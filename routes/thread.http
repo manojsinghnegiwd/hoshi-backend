@@ -1,0 +1,24 @@
+### Create a new thread for an agent
+POST http://localhost:3000/thread/agent/1
+Content-Type: application/json
+
+{
+    "agentId": 1
+}
+
+### Get all threads for an agent
+GET http://localhost:3000/thread/agent/1
+
+### Get a specific thread with messages
+GET http://localhost:3000/thread/1
+
+### Send a message to a thread (this will auto-generate thread name)
+POST http://localhost:3000/thread/1/message
+Content-Type: application/json
+
+{
+    "content": "I need help analyzing some data from our latest customer survey"
+}
+
+### Delete a thread
+DELETE http://localhost:3000/thread/1

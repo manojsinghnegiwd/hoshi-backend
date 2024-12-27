@@ -1,0 +1,35 @@
+### Create a new agent
+POST http://localhost:3000/agent
+Content-Type: application/json
+
+{
+    "name": "xAgent",
+    "description": "A versatile agent for handling various tasks",
+    "workspaceId": 1
+}
+
+### Get all agents
+GET http://localhost:3000/agent
+
+### Get specific agent
+GET http://localhost:3000/agent/1
+
+### Update an agent
+PUT http://localhost:3000/agent/1
+Content-Type: application/json
+
+{
+    "name": "Updated xAgent",
+    "description": "An updated description for the agent"
+}
+
+### Delete an agent
+DELETE http://localhost:3000/agent/1
+
+### Run an agent
+POST http://localhost:3000/agent/1/run
+Content-Type: application/json
+
+{
+    "input": "Hello agent!"
+}

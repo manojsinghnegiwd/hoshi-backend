@@ -1,0 +1,63 @@
+### Create a new workspace
+POST http://localhost:3000/workspace
+Content-Type: application/json
+
+{
+    "name": "Development Workspace",
+    "description": "A workspace for development purposes"
+}
+
+### Get all workspaces
+GET http://localhost:3000/workspace
+
+### Get a specific workspace by ID
+GET http://localhost:3000/workspace/1
+
+### Update a workspace
+PUT http://localhost:3000/workspace/1
+Content-Type: application/json
+
+{
+    "name": "Updated Dev Workspace",
+    "description": "Updated workspace description"
+}
+
+### Delete a workspace
+DELETE http://localhost:3000/workspace/1
+
+### Add an extension to workspace
+POST http://localhost:3000/workspace/1/extension
+Content-Type: application/json
+
+{
+    "extensionId": 1,
+    "config": {
+        "setting1": "value1",
+        "setting2": "value2"
+    },
+    "enabled": true
+}
+
+### Remove an extension from workspace
+DELETE http://localhost:3000/workspace/1/extension/1
+
+### Add an agent to workspace
+POST http://localhost:3000/workspace/1/agent
+Content-Type: application/json
+
+{
+    "agentId": 1,
+    "config": {
+        "setting1": "value1"
+    },
+    "useAllExtensions": true
+}
+
+### Remove an agent from workspace
+DELETE http://localhost:3000/workspace/1/agent/1
+
+### Get all extensions in a workspace
+GET http://localhost:3000/workspace/1/extension
+
+### Get all agents in a workspace
+GET http://localhost:3000/workspace/1/agent 

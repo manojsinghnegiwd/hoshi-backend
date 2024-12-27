@@ -1,0 +1,72 @@
+### Create a new extension
+POST http://localhost:3000/extension
+Content-Type: application/json
+
+{
+    "name": "wordpress-website",
+    "description": "Manage and post content to a WordPress site",
+    "version": "1.0.0"
+}
+
+### Get all extensions
+GET http://localhost:3000/extension
+
+### Get a specific extension
+GET http://localhost:3000/extension/1
+
+### Update an extension
+PUT http://localhost:3000/extension/1
+Content-Type: application/json
+
+{
+    "name": "google-docs",
+    "description": "Updated Google Docs extension with new features",
+    "version": "1.1.0",
+    "config": {
+        "clientId": "updated-client-id",
+        "clientSecret": "updated-client-secret",
+        "redirectUri": "http://localhost:3000/auth/google/callback",
+        "scopes": ["https://www.googleapis.com/auth/documents"]
+    }
+}
+
+### Delete an extension
+DELETE http://localhost:3000/extension/1
+
+### Get extension tools
+GET http://localhost:3000/extension/1/tools
+
+### Get all available extension directories
+GET http://localhost:3000/extension/available/list
+
+### Test an extension
+POST http://localhost:3000/extension/1/test
+Content-Type: application/json
+
+{
+    "input": {
+        "documentId": "test-doc-id",
+        "content": "Test content"
+    }
+}
+
+### Create Tavily extension
+POST http://localhost:3000/extension
+Content-Type: application/json
+
+{
+    "name": "tavily",
+    "description": "Web search using Tavily API",
+    "version": "1.0.0",
+    "config": {
+        "apiKey": "{{TAVILY_API_KEY}}"
+    }
+}
+
+### Test Tavily web search
+POST http://localhost:3000/extension/2/test
+Content-Type: application/json
+
+{
+    "input": "What are the latest developments in AI?"
+} 
