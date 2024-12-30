@@ -4,6 +4,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { CompiledStateGraph, StateGraph } from "@langchain/langgraph";
 import { MemorySaver, Annotation, messagesStateReducer } from "@langchain/langgraph";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
+import { dateTimeExtension } from "../extensions/date-time";
 
 // Define base state shape
 const BaseStateAnnotation = Annotation.Root({
@@ -51,15 +52,20 @@ export class Agent {
     stateAnnotation = BaseStateAnnotation,
     agentDescription?: string
   ) {
-    this.extensions = extensions;
+    // Always include the date-time extension
+    //@ts-ignore
+    this.extensions = [dateTimeExtension, ...extensions];
     this.hooks = hooks;
     this.stateAnnotation = stateAnnotation;
     this.systemPrompt = (
       agentDescription || "You are a helpful AI assistant."
-    );
+    ).concat(`
+      * Before running any tools, you must first get the current date and time using the "get_current_datetime" tool.
+      * Before running any tools, ask the user if they want to run any that tool, and if they do, only thenrun it.
+    `);
 
     // Collect all tools from extensions
-    this.tools = extensions.reduce((allTools: Tool[], ext) => {
+    this.tools = this.extensions.reduce((allTools: Tool[], ext) => {
       return allTools.concat(ext.tools);
     }, []);
 

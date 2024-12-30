@@ -44,8 +44,8 @@ export const searchPosts = tool(async ({ query, status, perPage }) => {
     };
 
     return outputSchema.parse(output);
-  } catch (error: unknown) {
-    console.error('Error searching WordPress posts:', error);
+  } catch (error: any) {
+    console.error('Error searching WordPress posts:', JSON.stringify(error.response.data, null, 2));
     throw new Error('Failed to search posts: ' + (error instanceof Error ? error.message : String(error)));
   }
 }, {

@@ -46,6 +46,7 @@ export class WordPressClient {
         auth: this.auth,
         data
       });
+      console.log(data, `${this.baseUrl}${endpoint}`);
       return response.data;
     } catch (error) {
       console.error(`WordPress API error (${method} ${endpoint}):`, error);
@@ -57,6 +58,7 @@ export class WordPressClient {
     title: string;
     content: string;
     status?: string;
+    date?: string;
     categories?: number[];
     tags?: number[];
   }): Promise<WordPressPost> {
@@ -64,6 +66,7 @@ export class WordPressClient {
       title: data.title,
       content: data.content,
       status: data.status || 'draft',
+      date: data.date,
       categories: data.categories || [],
       tags: data.tags || []
     });

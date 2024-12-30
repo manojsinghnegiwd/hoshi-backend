@@ -7,7 +7,7 @@ const inputSchema = z.object({
   title: z.string().describe("Title of the post"),
   content: z.string().describe("Content of the post"),
   tags: z.array(z.string()).describe("List of tags to apply to the post"),
-  categories: z.array(z.string()).describe("List of categories to apply to the post")
+  categories: z.array(z.string()).describe("List of categories to apply to the post"),
 });
 
 // Define the output schema for the tool
@@ -17,7 +17,8 @@ const outputSchema = z.object({
   url: z.string().describe("URL of the created post"),
   title: z.string().describe("Title of the created post"),
   categories: z.array(z.string()).describe("Applied categories"),
-  tags: z.array(z.string()).describe("Applied tags")
+  tags: z.array(z.string()).describe("Applied tags"),
+  scheduledDate: z.string().optional().describe("Scheduled publication date if applicable")
 });
 
 export const createPost = tool(async ({ title, content, tags, categories }) => {
@@ -44,11 +45,16 @@ export const createPost = tool(async ({ title, content, tags, categories }) => {
       })
     );
 
+    // Determine post status and date
+    let status = 'draft';
+    let date = undefined;
+
     // Create the post
     const post = await client.createPost({
       title,
       content,
-      status: 'draft',
+      status,
+      date,
       categories: categoryIds,
       tags: tagIds
     });
@@ -59,7 +65,9 @@ export const createPost = tool(async ({ title, content, tags, categories }) => {
       url: post.link,
       title: post.title.rendered,
       categories,
-      tags
+      tags,
+      status: post.status,
+      scheduledDate: date
     };
 
     return outputSchema.parse(output);
@@ -69,6 +77,8 @@ export const createPost = tool(async ({ title, content, tags, categories }) => {
   }
 }, {
   name: "create_post",
-  description: "Create a new post on WordPress site with the specified title, content, tags, and categories.",
+  description: `
+    Create a new post on WordPress site with the specified title, content, tags, and categories.
+  `,
   schema: inputSchema,
 }); 
