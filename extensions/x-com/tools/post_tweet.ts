@@ -1,27 +1,43 @@
-import { DynamicTool } from "@langchain/core/tools";
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
 import { TwitterApi } from 'twitter-api-v2';
 
-export const postTweet = new DynamicTool({
-  name: "post_tweet",
-  description: "Post a tweet to X (formerly Twitter). Input should be the tweet text (max 280 characters).",
-  func: async (input: string) => {
-    try {
-      const client = new TwitterApi({
-        appKey: process.env.X_API_KEY!,
-        appSecret: process.env.X_API_SECRET!,
-        accessToken: process.env.X_ACCESS_TOKEN!,
-        accessSecret: process.env.X_ACCESS_TOKEN_SECRET!,
-      });
+// Define the input schema for the tool
+const inputSchema = z.object({
+  text: z.string()
+    .max(280, "Tweet cannot exceed 280 characters")
+    .describe("The text content of the tweet")
+});
 
-      const tweet = await client.v2.tweet(input);
-      return JSON.stringify({
-        success: true,
-        tweet_id: tweet.data.id,
-        text: tweet.data.text
-      }, null, 2);
-    } catch (error) {
-      console.error('Error posting tweet:', error);
-      throw new Error('Failed to post tweet');
-    }
+// Define the output schema for the tool
+const outputSchema = z.object({
+  success: z.boolean(),
+  tweet_id: z.string().describe("ID of the posted tweet"),
+  text: z.string().describe("Content of the posted tweet")
+});
+
+export const postTweet = tool(async ({ text }) => {
+  try {
+    const client = new TwitterApi({
+      appKey: process.env.X_API_KEY!,
+      appSecret: process.env.X_API_SECRET!,
+      accessToken: process.env.X_ACCESS_TOKEN!,
+      accessSecret: process.env.X_ACCESS_TOKEN_SECRET!,
+    });
+
+    const tweet = await client.v2.tweet(text);
+    
+    return outputSchema.parse({
+      success: true,
+      tweet_id: tweet.data.id,
+      text: tweet.data.text
+    });
+  } catch (error: unknown) {
+    console.error('Error posting tweet:', error);
+    throw new Error('Failed to post tweet: ' + (error instanceof Error ? error.message : String(error)));
   }
+}, {
+  name: "post_tweet",
+  description: "Post a tweet to X (formerly Twitter). The tweet text must not exceed 280 characters.",
+  schema: inputSchema,
 }); 

@@ -3,8 +3,8 @@ POST http://localhost:3000/extension
 Content-Type: application/json
 
 {
-    "name": "wordpress-website",
-    "description": "Manage and post content to a WordPress site",
+    "name": "website-crawler",
+    "description": "Crawl and extract content from websites using headless browser",
     "version": "1.0.0"
 }
 
