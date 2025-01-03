@@ -61,7 +61,7 @@ export class Agent {
       agentDescription || "You are a helpful AI assistant."
     ).concat(`
       * Before running any tools, you must first get the current date and time using the "get_current_datetime" tool.
-      * Before running any tools, ask the user if they want to run any that tool, and if they do, only thenrun it.
+      * Before running any tools, ask the user if they want to run any that tool, and if they do, only then run it.
     `);
 
     // Collect all tools from extensions
