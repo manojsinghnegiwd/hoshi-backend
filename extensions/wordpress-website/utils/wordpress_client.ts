@@ -140,4 +140,8 @@ export class WordPressClient {
     
     return this.request<WordPressPost[]>('GET', `/posts?${queryParams.toString()}`);
   }
+
+  async deletePost(postId: number): Promise<void> {
+    await this.request<void>('DELETE', `/posts/${postId}`);
+  }
 } 

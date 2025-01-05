@@ -3,6 +3,7 @@ import { analyzeContent } from './tools/analyze_content';
 import { manageCategories } from './tools/manage_categories';
 import { managePostStatus } from './tools/manage_post_status';
 import { searchPosts } from './tools/search_posts';
+import { deletePost } from './tools/delete_post';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
@@ -23,7 +24,8 @@ export const wordpressExtension = {
     analyzeContent,
     manageCategories,
     managePostStatus,
-    searchPosts
+    searchPosts,
+    deletePost
   ]
 };
 
