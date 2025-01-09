@@ -1,0 +1,60 @@
+### Create a new schedule (Interval)
+POST http://localhost:3000/scheduler
+Content-Type: application/json
+
+{
+  "agentId": 1,
+  "type": "INTERVAL",
+  "interval": 30,
+  "metadata": {
+    "input": "What is the current time?"
+  }
+}
+
+### Create a new schedule (Cron)
+POST http://localhost:3000/scheduler
+Content-Type: application/json
+
+{
+  "agentId": 1,
+  "type": "CRON",
+  "cronExpression": "0 9 * * *",
+  "timezone": "America/Los_Angeles",
+  "metadata": {
+    "input": "Generate a daily report"
+  }
+}
+
+### Create a new schedule (Fixed time)
+POST http://localhost:3000/scheduler
+Content-Type: application/json
+
+{
+  "agentId": 1,
+  "type": "FIXED",
+  "fixedTime": "2024-01-10T15:00:00Z",
+  "metadata": {
+    "input": "Send one-time notification"
+  }
+}
+
+### List all schedules
+GET http://localhost:3000/scheduler
+
+### List active schedules
+GET http://localhost:3000/scheduler?enabled=true
+
+### List schedules for specific agent
+GET http://localhost:3000/scheduler?agentId=1
+
+### Get specific schedule
+GET http://localhost:3000/scheduler/1
+
+### Pause schedule
+POST http://localhost:3000/scheduler/1/pause
+
+### Resume schedule
+POST http://localhost:3000/scheduler/1/resume
+
+### Delete schedule
+DELETE http://localhost:3000/scheduler/1 

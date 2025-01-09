@@ -1,5 +1,6 @@
 import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { Tool } from "@langchain/core/tools";
+import { DynamicStructuredTool } from "@langchain/core/tools";
 import { ChatOpenAI } from "@langchain/openai";
 import { CompiledStateGraph, StateGraph } from "@langchain/langgraph";
 import { MemorySaver, Annotation, messagesStateReducer } from "@langchain/langgraph";
@@ -34,6 +35,15 @@ export interface Message {
   content: string;
 }
 
+export interface AgentConfig {
+  modelName?: string;
+  temperature?: number;
+  stateAnnotation?: any;
+  agentDescription?: string;
+  requireUserConfirmation?: boolean;
+  createPlanBeforeExecution?: boolean;
+}
+
 export class Agent {
   protected tools: Tool[];
   protected model: any;
@@ -47,21 +57,19 @@ export class Agent {
   constructor(
     extensions: Extension[] = [],
     hooks: AgentHooks = {},
-    modelName: string = process.env.LLM_MODEL || 'gpt-4o',
-    temperature: number = 0,
-    stateAnnotation = BaseStateAnnotation,
-    agentDescription?: string
+    config: AgentConfig = {}
   ) {
     // Always include the date-time extension
     //@ts-ignore
     this.extensions = [dateTimeExtension, ...extensions];
     this.hooks = hooks;
-    this.stateAnnotation = stateAnnotation;
+    this.stateAnnotation = config.stateAnnotation || BaseStateAnnotation;
     this.systemPrompt = (
-      agentDescription || "You are a helpful AI assistant."
+      config.agentDescription || "You are a helpful AI assistant."
     ).concat(`
-      * Before running any tools, you must first get the current date and time using the "get_current_datetime" tool.
-      * Before running any tools, ask the user if they want to run any that tool, and if they do, only then run it.
+      * Before running any tools, you must first get the current date and time using the "get_current_datetime" tool. You don't need to ask the user for confirmation for this.
+      ${config.requireUserConfirmation ? "* Before running any tools, ask the user if they want to run any that tool, and if they do, only then run it." : ""}
+      ${config.createPlanBeforeExecution ? "* Before doing anything, create a plan of what you will do including the tools you will use, and share it with the user and then start executing the plan." : ""}
     `);
 
     // Collect all tools from extensions
@@ -71,8 +79,8 @@ export class Agent {
 
     // Initialize the model with tools and streaming
     const chatModel = new ChatOpenAI({
-      modelName,
-      temperature,
+      modelName: config.modelName || process.env.LLM_MODEL || 'gpt-4o',
+      temperature: config.temperature ?? 0,
       streaming: true,
     });
     this.model = chatModel.bindTools(this.tools);

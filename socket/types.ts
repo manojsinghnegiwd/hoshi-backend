@@ -34,7 +34,7 @@ export interface StreamChunk {
 }
 
 export interface ToolExecution {
-  messageId: number;
+  messageId: number | string;
   threadId: number;
   explanation: string;
 }

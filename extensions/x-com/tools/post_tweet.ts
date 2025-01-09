@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { TwitterApi } from 'twitter-api-v2';
+import { client } from '../utils/client';
 
 // Define the input schema for the tool
 const inputSchema = z.object({
@@ -18,13 +18,6 @@ const outputSchema = z.object({
 
 export const postTweet = tool(async ({ text }) => {
   try {
-    const client = new TwitterApi({
-      appKey: process.env.X_API_KEY!,
-      appSecret: process.env.X_API_SECRET!,
-      accessToken: process.env.X_ACCESS_TOKEN!,
-      accessSecret: process.env.X_ACCESS_TOKEN_SECRET!,
-    });
-
     const tweet = await client.v2.tweet(text);
     
     return outputSchema.parse({

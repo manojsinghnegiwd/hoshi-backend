@@ -83,7 +83,7 @@ model Schedule {
   id              Int       @id @default(autoincrement())
   agent           Agent     @relation(fields: [agentId], references: [id])
   agentId         Int       @unique  // One-to-one relation with Agent
-  type            ScheduleType  // "interval", "cron", "fixed"
+  type            String    // "INTERVAL", "CRON", "FIXED"
   interval        Int?      // Interval in minutes (for interval type)
   cronExpression  String?   // Cron expression (for cron type)
   fixedTime       DateTime? // Fixed time (for fixed type)
@@ -105,9 +105,9 @@ enum ScheduleType {
 
 model ScheduleLog {
   id          Int       @id @default(autoincrement())
-  schedule    Schedule  @relation(fields: [scheduleId], references: [id])
+  schedule    Schedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   scheduleId  Int
-  status      String    // success, failed
+  status      String    // running, success, failed
   error       String?   // Error message if failed
   metadata    Json?     // Any metadata about the run
   startTime   DateTime

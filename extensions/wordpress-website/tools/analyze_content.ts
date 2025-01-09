@@ -21,7 +21,7 @@ const outputSchema = z.object({
 export const analyzeContent = tool(async ({ content, title }) => {
   try {
     const model = new ChatOpenAI({
-      modelName: "gpt-4",
+      modelName: "gpt-4o-mini",
       temperature: 0
     });
 

@@ -6,6 +6,7 @@ import workspaceRouter from './routes/workspace';
 import threadRouter from './routes/thread';
 import extensionRouter from './routes/extension';
 import { setupSocketServer } from './socket/server';
+import schedulerRouter from './routes/scheduler';
 
 const app = express();
 const httpServer = createServer(app);
@@ -28,6 +29,7 @@ app.use('/agent', agentRouter);
 app.use('/workspace', workspaceRouter);
 app.use('/thread', threadRouter);
 app.use('/extension', extensionRouter);
+app.use('/scheduler', schedulerRouter);
 
 // Setup WebSocket server
 setupSocketServer(httpServer);

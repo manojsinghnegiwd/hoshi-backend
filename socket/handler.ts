@@ -272,15 +272,7 @@ export class SocketHandler {
       const extensions = Array.from(extensionsMap.values());
 
       // Create an empty message to start streaming
-      const initialMessage = await prisma.message.create({
-        data: {
-          threadId,
-          role: 'assistant',
-          content: ''
-        }
-      });
-
-      let streamContent = '';
+      const initialMessageId = crypto.randomUUID();
 
       // Initialize agent with description as system prompt
       const agentInstance = new Agent(
@@ -288,10 +280,9 @@ export class SocketHandler {
         {
           onToken: async (token: string, isToolCall: boolean = false) => {
             if (!isToolCall) {
-              streamContent += token;
               // Emit the token to all clients in the room
               this.emitToRoom(threadId, 'thread:message:stream', {
-                messageId: initialMessage.id,
+                messageId: initialMessageId,
                 threadId,
                 chunk: token,
                 done: false
@@ -301,7 +292,7 @@ export class SocketHandler {
           onToolStart: async (explanation: string) => {
             // Emit tool start event
             this.socket.emit('thread:tool:start', {
-              messageId: initialMessage.id,
+              messageId: initialMessageId,
               threadId,
               explanation
             });
@@ -315,10 +306,11 @@ export class SocketHandler {
               ? message.content.map(c => 'text' in c ? c.text : '').join('')
               : message.content;
 
-            // Update the message with the complete content
-            const agentMessage = await prisma.message.update({
-              where: { id: initialMessage.id },
+            // Create a new message instead of updating
+            const agentMessage = await prisma.message.create({
               data: {
+                threadId: threadId,
+                role: 'assistant',
                 content: String(content)
               }
             });
@@ -326,7 +318,7 @@ export class SocketHandler {
             const threadMessage: ThreadMessage = {
               id: agentMessage.id,
               threadId: agentMessage.threadId,
-              role: 'assistant',
+              role: 'assistant', 
               content: agentMessage.content,
               createdAt: agentMessage.createdAt
             };
@@ -357,10 +349,13 @@ export class SocketHandler {
             this.emitToRoom(threadId, 'error', 'Agent processing failed');
           }
         },
-        process.env.LLM_MODEL || 'gpt-4o',
-        0,
-        undefined,
-        thread.agent.description || undefined
+        {
+          modelName: process.env.LLM_MODEL || 'gpt-4o',
+          temperature: 0,
+          agentDescription: thread.agent.description || undefined,
+          requireUserConfirmation: false,
+          createPlanBeforeExecution: true
+        }
       );
 
       // Convert ThreadMessage[] to Message[] for agent execution

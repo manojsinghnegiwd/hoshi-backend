@@ -167,9 +167,17 @@ threadRouter.post('/:threadId/message', async (req: Request, res: Response) => {
 threadRouter.delete('/:threadId', async (req: Request, res: Response) => {
   try {
     const threadId = parseInt(req.params.threadId);
+    
+    // Delete all messages in the thread first
+    await prisma.message.deleteMany({
+      where: { threadId }
+    });
+
+    // Then delete the thread
     await prisma.thread.delete({
       where: { id: threadId }
     });
+    
     res.status(204).send();
   } catch (error) {
     console.error(error);
@@ -265,10 +273,13 @@ async function processAgentResponse(threadId: number, userMessage: string, previ
           });
         }
       },
-      process.env.LLM_MODEL || 'gpt-4o',
-      0,
-      undefined,
-      thread.agent.description || undefined
+      {
+        modelName: process.env.LLM_MODEL || 'gpt-4o',
+        temperature: 0,
+        agentDescription: thread.agent.description || undefined,
+        requireUserConfirmation: false,
+        createPlanBeforeExecution: false
+      }
     );
 
     // Execute agent with conversation history

@@ -1,23 +1,20 @@
-import { postTweet } from './tools/post_tweet';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env from the x-com extension directory
+// Load .env from the wordpress-website extension directory
 dotenv.config({ path: path.join(__dirname, '.env') });
 
-export const xComExtension = {
+import { Extension } from "../../agent";
+import { Tool } from "@langchain/core/tools";
+import { postTweet } from "./tools/post_tweet";
+import { readTweets } from "./tools/read_tweets";
+import { trendingHashtags } from "./tools/trending_hashtags";
+
+const xComExtension: Extension = {
   name: "x-com",
-  description: "Post and interact with X (formerly Twitter)",
-  type: "extension",
-  config: {
-    apiKey: process.env.X_API_KEY,
-    apiSecret: process.env.X_API_SECRET,
-    accessToken: process.env.X_ACCESS_TOKEN,
-    accessTokenSecret: process.env.X_ACCESS_TOKEN_SECRET
-  },
-  tools: [
-    postTweet
-  ]
+  description: "Extension for interacting with X (Twitter) - post tweets, read tweets, and get trending topics",
+  type: "social",
+  tools: [postTweet, readTweets, trendingHashtags].map(tool => tool as unknown as Tool),
 };
 
-export default xComExtension; 
+export default xComExtension;

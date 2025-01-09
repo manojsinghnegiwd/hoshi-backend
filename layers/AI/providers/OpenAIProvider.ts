@@ -40,7 +40,7 @@ export class OpenAIProvider implements AIProvider {
     }
 
     const completion = await this.client.chat.completions.create({
-      model: request.model || 'gpt-4',
+      model: request.model || 'gpt-4o',
       messages: messages.map(({ timestamp, ...msg }) => msg), // Remove timestamp for OpenAI API
       temperature: request.temperature || 1,
     });

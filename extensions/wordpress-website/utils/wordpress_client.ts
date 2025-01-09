@@ -46,7 +46,6 @@ export class WordPressClient {
         auth: this.auth,
         data
       });
-      console.log(data, `${this.baseUrl}${endpoint}`);
       return response.data;
     } catch (error) {
       console.error(`WordPress API error (${method} ${endpoint}):`, error);

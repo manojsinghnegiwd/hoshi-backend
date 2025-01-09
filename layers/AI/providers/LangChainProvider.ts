@@ -38,7 +38,7 @@ export class LangChainProvider implements AIProvider {
       case 'openai':
         return new ChatOpenAI({ 
           openAIApiKey: apiKey,
-          modelName: process.env.LLM_MODEL || 'gpt-4',
+          modelName: process.env.LLM_MODEL || 'gpt-4o',
           temperature: 0.7,
         });
       case 'claude':
