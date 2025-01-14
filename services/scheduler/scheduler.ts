@@ -11,7 +11,6 @@ export class SchedulerService {
   private static instance: SchedulerService;
 
   private constructor() {
-    // Initialize scheduler
     this.initializeScheduler();
   }
 
@@ -23,7 +22,6 @@ export class SchedulerService {
   }
 
   private async initializeScheduler() {
-    // Get all active schedules
     const schedules = await prisma.schedule.findMany({
       where: {
         enabled: true,
@@ -33,7 +31,6 @@ export class SchedulerService {
       },
     });
 
-    // Schedule all active tasks
     for (const schedule of schedules) {
       await this.scheduleTask(schedule);
     }
@@ -69,17 +66,15 @@ export class SchedulerService {
         if (!schedule.fixedTime) throw new Error('Fixed time not specified');
         nextRun = new Date(schedule.fixedTime);
         if (nextRun < now) {
-          nextRun = null; // Don't schedule if the fixed time is in the past
+          nextRun = null;
         }
         break;
     }
 
     if (nextRun) {
-      // Calculate delay in milliseconds
       const delay = nextRun.getTime() - now.getTime();
 
-      // Add job to queue
-      await schedulerQueue.add(
+      const job = await schedulerQueue.add(
         `schedule:${schedule.id}`,
         {
           scheduleId: schedule.id,
@@ -89,7 +84,6 @@ export class SchedulerService {
         },
         {
           delay,
-          jobId: `schedule:${schedule.id}`,
           repeat:
             schedule.type === 'FIXED'
               ? undefined
@@ -100,11 +94,11 @@ export class SchedulerService {
         }
       );
 
-      // Update next run time in database
       await prisma.schedule.update({
         where: { id: schedule.id },
         data: {
           nextRun: nextRun,
+          jobId: job.id,
         },
       });
     }
@@ -133,22 +127,18 @@ export class SchedulerService {
     return schedule;
   }
 
-  private async removeJob(scheduleId: number) {
-    const jobId = `schedule:${scheduleId}`;
+  private async removeJob(jobId: string) {
     const job = await Job.fromId(schedulerQueue, jobId);
+    console.log('Removing job:', jobId, job);
     if (job) {
       await job.remove();
-      console.log(`Job ${jobId} has been removed.`);
-    } else {
-      console.log(`Job ${jobId} not found.`);
     }
   }
 
-  public async pauseSchedule(scheduleId: number) {
-    // Remove job from queue
-    await this.removeJob(scheduleId);
-
-    // Update database
+  public async pauseSchedule(scheduleId: number, jobId: string | null) {
+    if (jobId) {
+      await this.removeJob(jobId);
+    }
     return prisma.schedule.update({
       where: { id: scheduleId },
       data: { enabled: false },
@@ -167,23 +157,20 @@ export class SchedulerService {
       throw new Error('Schedule not found');
     }
 
-    // Update database first
     await prisma.schedule.update({
       where: { id: scheduleId },
       data: { enabled: true },
     });
 
-    // Reschedule the task
     await this.scheduleTask(schedule);
 
     return schedule;
   }
 
-  public async deleteSchedule(scheduleId: number) {
-    // Remove job from queue
-    await this.removeJob(scheduleId);
-
-    // Delete from database
+  public async deleteSchedule(scheduleId: number, jobId: string | null) {
+    if (jobId) {
+      await this.removeJob(jobId);
+    }
     return prisma.schedule.delete({
       where: { id: scheduleId },
     });
@@ -194,7 +181,15 @@ export class SchedulerService {
       where: { id: scheduleId },
       include: {
         agent: true,
-        logs: true,
+        runs: {
+          include: {
+            thread: {
+              include: {
+                messages: true
+              }
+            }
+          }
+        }
       },
     });
   }
@@ -207,7 +202,11 @@ export class SchedulerService {
       where: filters,
       include: {
         agent: true,
-        logs: true,
+        runs: {
+          include: {
+            thread: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc',

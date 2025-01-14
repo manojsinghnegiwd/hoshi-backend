@@ -80,21 +80,22 @@ model AgentExtension {
 }
 
 model Schedule {
-  id              Int       @id @default(autoincrement())
-  agent           Agent     @relation(fields: [agentId], references: [id])
-  agentId         Int       @unique  // One-to-one relation with Agent
-  type            String    // "INTERVAL", "CRON", "FIXED"
-  interval        Int?      // Interval in minutes (for interval type)
-  cronExpression  String?   // Cron expression (for cron type)
-  fixedTime       DateTime? // Fixed time (for fixed type)
-  timezone        String    @default("UTC")
-  enabled         Boolean   @default(true)
-  metadata        Json?     // Store any additional data needed for the task
+  id              Int          @id @default(autoincrement())
+  agent           Agent        @relation(fields: [agentId], references: [id])
+  agentId         Int          @unique  // One-to-one relation with Agent
+  type            String       // "INTERVAL", "CRON", "FIXED"
+  interval        Int?         // Interval in minutes (for interval type)
+  cronExpression  String?      // Cron expression (for cron type)
+  fixedTime       DateTime?    // Fixed time (for fixed type)
+  timezone        String       @default("UTC")
+  enabled         Boolean      @default(true)
+  metadata        Json?        // Store any additional data needed for the task
   lastRun         DateTime?
   nextRun         DateTime?
-  logs            ScheduleLog[]
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  jobId           String?    // BullMQ job ID
+  runs            ScheduleRun[] // Changed from logs to runs
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 }
 
 enum ScheduleType {
@@ -103,15 +104,16 @@ enum ScheduleType {
   FIXED
 }
 
-model ScheduleLog {
+model ScheduleRun {
   id          Int       @id @default(autoincrement())
   schedule    Schedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   scheduleId  Int
   status      String    // running, success, failed
-  error       String?   // Error message if failed
   metadata    Json?     // Any metadata about the run
   startTime   DateTime
   endTime     DateTime?
+  thread      Thread?   @relation(fields: [threadId], references: [id])
+  threadId    Int?      @unique
   createdAt   DateTime  @default(now())
 
   @@index([scheduleId])
@@ -132,13 +134,14 @@ model WorkspaceAgent {
 }
 
 model Thread {
-  id          Int         @id @default(autoincrement())
-  agent       Agent       @relation(fields: [agentId], references: [id])
+  id          Int           @id @default(autoincrement())
+  agent       Agent         @relation(fields: [agentId], references: [id])
   agentId     Int
   name        String
   messages    Message[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  scheduleRun ScheduleRun?  // Add this relation
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 }
 
 model Message {

@@ -2,6 +2,9 @@ import express from 'express';
 import { z } from 'zod';
 import { validateRequest } from '../middleware/validate';
 import SchedulerService from '../services/scheduler/scheduler';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 const schedulerRouter = express.Router();
 const scheduler = SchedulerService.getInstance();
@@ -72,11 +75,34 @@ schedulerRouter.get('/:id', async (req, res) => {
   }
 });
 
+// Get schedule runs
+schedulerRouter.get('/:id/runs', async (req, res) => {
+  try {
+    const schedule = await scheduler.getSchedule(parseInt(req.params.id));
+    if (!schedule) {
+      res.status(404).json({ error: 'Schedule not found' });
+      return;
+    }
+    res.json(schedule.runs);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Pause a schedule
 schedulerRouter.post('/:id/pause', async (req, res) => {
   try {
-    const schedule = await scheduler.pauseSchedule(parseInt(req.params.id));
-    res.json(schedule);
+    const schedule = await prisma.schedule.findUnique({
+      where: { id: parseInt(req.params.id) }
+    });
+
+    if (!schedule) {
+      res.status(404).json({ error: 'Schedule not found' });
+      return;
+    }
+
+    const updatedSchedule = await scheduler.pauseSchedule(schedule.id, schedule.jobId);
+    res.json(updatedSchedule);
   } catch (error) {
     if (error instanceof Error) {
       res.status(400).json({ error: error.message });
@@ -89,8 +115,17 @@ schedulerRouter.post('/:id/pause', async (req, res) => {
 // Resume a schedule
 schedulerRouter.post('/:id/resume', async (req, res) => {
   try {
-    const schedule = await scheduler.resumeSchedule(parseInt(req.params.id));
-    res.json(schedule);
+    const schedule = await prisma.schedule.findUnique({
+      where: { id: parseInt(req.params.id) }
+    });
+
+    if (!schedule) {
+      res.status(404).json({ error: 'Schedule not found' });
+      return;
+    }
+
+    const updatedSchedule = await scheduler.resumeSchedule(schedule.id);
+    res.json(updatedSchedule);
   } catch (error) {
     if (error instanceof Error) {
       res.status(400).json({ error: error.message });
@@ -103,7 +138,16 @@ schedulerRouter.post('/:id/resume', async (req, res) => {
 // Delete a schedule
 schedulerRouter.delete('/:id', async (req, res) => {
   try {
-    await scheduler.deleteSchedule(parseInt(req.params.id));
+    const schedule = await prisma.schedule.findUnique({
+      where: { id: parseInt(req.params.id) }
+    });
+
+    if (!schedule) {
+      res.status(404).json({ error: 'Schedule not found' });
+      return;
+    }
+
+    await scheduler.deleteSchedule(schedule.id, schedule.jobId);
     res.status(204).send();
   } catch (error) {
     if (error instanceof Error) {

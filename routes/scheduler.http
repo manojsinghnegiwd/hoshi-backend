@@ -1,5 +1,5 @@
 ### Create a new schedule (Interval)
-POST http://localhost:3000/scheduler
+POST http://localhost:3000/api/scheduler
 Content-Type: application/json
 
 {
@@ -12,7 +12,7 @@ Content-Type: application/json
 }
 
 ### Create a new schedule (Cron)
-POST http://localhost:3000/scheduler
+POST http://localhost:3000/api/scheduler
 Content-Type: application/json
 
 {
@@ -26,7 +26,7 @@ Content-Type: application/json
 }
 
 ### Create a new schedule (Fixed time)
-POST http://localhost:3000/scheduler
+POST http://localhost:3000/api/scheduler
 Content-Type: application/json
 
 {
@@ -39,22 +39,28 @@ Content-Type: application/json
 }
 
 ### List all schedules
-GET http://localhost:3000/scheduler
+GET http://localhost:3000/api/scheduler
 
 ### List active schedules
-GET http://localhost:3000/scheduler?enabled=true
+GET http://localhost:3000/api/scheduler?enabled=true
 
 ### List schedules for specific agent
-GET http://localhost:3000/scheduler?agentId=1
+GET http://localhost:3000/api/scheduler?agentId=1
 
-### Get specific schedule
-GET http://localhost:3000/scheduler/1
+### Get specific schedule with runs and threads
+GET http://localhost:3000/api/scheduler/1
+
+### Get schedule runs
+GET http://localhost:3000/api/scheduler/1/runs
+
+### Get schedule threads
+GET http://localhost:3000/api/scheduler/1/threads
 
 ### Pause schedule
-POST http://localhost:3000/scheduler/1/pause
+POST http://localhost:3000/api/scheduler/1/pause
 
 ### Resume schedule
-POST http://localhost:3000/scheduler/1/resume
+POST http://localhost:3000/api/scheduler/1/resume
 
 ### Delete schedule
-DELETE http://localhost:3000/scheduler/1 
+DELETE http://localhost:3000/api/scheduler/1 

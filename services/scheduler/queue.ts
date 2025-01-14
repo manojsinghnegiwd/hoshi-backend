@@ -27,12 +27,14 @@ export const schedulerQueue = new Queue<ScheduledJobData>('scheduler', {
 const worker = new Worker<ScheduledJobData>(
   'scheduler',
   async (job: Job<ScheduledJobData>) => {
+    console.log('Processing job:', job.id, job.data);
     const { scheduleId, agentId, input, metadata } = job.data;
-    let log: { id: number } | null = null;
+    let run: { id: number } | null = null;
+    let thread: { id: number } | null = null;
 
     try {
-      // Update schedule log start time
-      log = await prisma.scheduleLog.create({
+      // Create schedule run
+      run = await prisma.scheduleRun.create({
         data: {
           scheduleId,
           status: 'running',
@@ -69,11 +71,17 @@ const worker = new Worker<ScheduledJobData>(
       }
 
       // Create a new thread for this run
-      const thread = await prisma.thread.create({
+      thread = await prisma.thread.create({
         data: {
           agentId,
           name: `Scheduled Run - ${new Date().toISOString()}`,
         },
+      });
+
+      // Link thread to run
+      await prisma.scheduleRun.update({
+        where: { id: run.id },
+        data: { threadId: thread.id }
       });
 
       // Load extensions using the utility function
@@ -84,6 +92,7 @@ const worker = new Worker<ScheduledJobData>(
         extensions,
         {
           onMessage: async (message: BaseMessage) => {
+            if (!thread) return;
             // Save message to thread
             await prisma.message.create({
               data: {
@@ -106,16 +115,18 @@ const worker = new Worker<ScheduledJobData>(
       // Execute the agent
       await agent.execute(input);
 
-      // Update schedule log with success
-      await prisma.scheduleLog.update({
-        where: { id: log.id },
-        data: {
-          status: 'success',
-          endTime: new Date(),
-        },
-      });
+      // Update run with success
+      if (run) {
+        await prisma.scheduleRun.update({
+          where: { id: run.id },
+          data: {
+            status: 'success',
+            endTime: new Date(),
+          },
+        });
+      }
 
-      // Update schedule's lastRun and nextRun
+      // Update schedule's lastRun
       await prisma.schedule.update({
         where: { id: scheduleId },
         data: {
@@ -124,13 +135,23 @@ const worker = new Worker<ScheduledJobData>(
       });
 
     } catch (error) {
-      // Update schedule log with failure
-      if (log) {
-        await prisma.scheduleLog.update({
-          where: { id: log.id },
+      // Add error message to thread if it exists
+      if (thread) {
+        await prisma.message.create({
+          data: {
+            threadId: thread.id,
+            role: 'system',
+            content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+          }
+        });
+      }
+
+      // Update run with failure
+      if (run) {
+        await prisma.scheduleRun.update({
+          where: { id: run.id },
           data: {
             status: 'failed',
-            error: error instanceof Error ? error.message : 'Unknown error',
             endTime: new Date(),
           },
         });
