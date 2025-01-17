@@ -1,7 +1,7 @@
 import { PrismaClient, Schedule } from '@prisma/client';
 import { schedulerQueue } from './queue';
 import { parseExpression } from 'cron-parser';
-import { Job } from 'bullmq';
+import { Job, Queue } from 'bullmq';
 
 const prisma = new PrismaClient();
 
@@ -72,27 +72,32 @@ export class SchedulerService {
     }
 
     if (nextRun) {
-      const delay = nextRun.getTime() - now.getTime();
+      const jobData = {
+        scheduleId: schedule.id,
+        agentId: schedule.agent.id,
+        input: (schedule.metadata as { input?: string })?.input || '',
+        metadata: schedule.metadata,
+      };
 
-      const job = await schedulerQueue.add(
-        `schedule:${schedule.id}`,
-        {
-          scheduleId: schedule.id,
-          agentId: schedule.agent.id,
-          input: (schedule.metadata as { input?: string })?.input || '',
-          metadata: schedule.metadata,
-        },
-        {
-          delay,
-          repeat:
-            schedule.type === 'FIXED'
-              ? undefined
-              : {
-                  pattern: schedule.type === 'CRON' ? schedule.cronExpression! : undefined,
-                  every: schedule.type === 'INTERVAL' ? schedule.interval! * 60000 : undefined,
-                },
-        }
-      );
+      let job;
+      const jobName = `schedule:${schedule.id}`;
+
+      if (schedule.type === 'FIXED') {
+        const delay = nextRun.getTime() - now.getTime();
+        job = await schedulerQueue.add(jobName, jobData, { delay });
+      } else {
+        const repeatOptions = schedule.type === 'CRON' 
+          ? { pattern: schedule.cronExpression! }
+          : { every: schedule.interval! * 60000 };
+
+        job = await schedulerQueue.upsertJobScheduler(
+          jobName,
+          repeatOptions,
+          { name: jobName, data: jobData }
+        );
+      }
+
+      console.log('Job added:', job.id, jobName);
 
       await prisma.schedule.update({
         where: { id: schedule.id },
@@ -130,8 +135,17 @@ export class SchedulerService {
   private async removeJob(jobId: string) {
     const job = await Job.fromId(schedulerQueue, jobId);
     console.log('Removing job:', jobId, job);
+
     if (job) {
-      await job.remove();
+      if (job.opts.repeat) {
+        await schedulerQueue.removeJobScheduler(job.name);
+        console.log(`Repeatable job ${job.name} removed.`);
+      } else {
+        await job.remove();
+        console.log(`Job ${jobId} removed.`);
+      }
+    } else {
+      console.log(`Job ${jobId} not found.`);
     }
   }
 
