@@ -17,6 +17,9 @@ model Workspace {
   id          Int             @id @default(autoincrement())
   name        String
   description String?         @db.Text
+  userId      String          @db.Uuid
+  user        User            @relation(fields: [userId], references: [id])
+  users       UserWorkspace[]
   agents      WorkspaceAgent[]
   extensions  WorkspaceExtension[]
   createdAt   DateTime        @default(now())
@@ -92,10 +95,12 @@ model Schedule {
   metadata        Json?        // Store any additional data needed for the task
   lastRun         DateTime?
   nextRun         DateTime?
-  jobId           String?    // BullMQ job ID
+  jobId           String?      // BullMQ job ID
   runs            ScheduleRun[] // Changed from logs to runs
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
+  userId          String       @db.Uuid
+  user            User         @relation(fields: [userId], references: [id])
 }
 
 enum ScheduleType {
@@ -145,12 +150,15 @@ model Thread {
 }
 
 model Message {
-  id          Int         @id @default(autoincrement())
-  thread      Thread      @relation(fields: [threadId], references: [id])
-  threadId    Int
-  role        String      // system, user, assistant
-  content     String      @db.Text
-  createdAt   DateTime    @default(now())
+  id        Int      @id @default(autoincrement())
+  threadId  Int
+  role      String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
 }
 
 model Memory {
@@ -163,4 +171,29 @@ model Memory {
   updatedAt   DateTime  @updatedAt
 
   @@unique([agentId, key])
+}
+
+model User {
+  id          String   @id @default(dbgenerated()) @db.Uuid
+  email       String   @unique
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @default(now()) @db.Timestamptz
+  workspaces  UserWorkspace[]
+  ownedWorkspaces Workspace[]
+  schedules   Schedule[]
+
+  @@map("auth.users")
+}
+
+model UserWorkspace {
+  id          Int       @id @default(autoincrement())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String    @db.Uuid
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId Int
+  role        String    @default("member") // owner, admin, member
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, workspaceId])
 }

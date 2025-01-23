@@ -1,8 +1,12 @@
 import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authMiddleware } from '../middleware/auth';
 
 const prisma = new PrismaClient();
 const workspaceRouter = express.Router();
+
+// Apply auth middleware to all routes
+workspaceRouter.use(authMiddleware);
 
 // Create a new workspace
 workspaceRouter.post('/', async (req: Request, res: Response) => {
@@ -11,6 +15,7 @@ workspaceRouter.post('/', async (req: Request, res: Response) => {
       data: {
         name: req.body.name,
         description: req.body.description,
+        userId: req.user.id,
       }
     });
     res.status(201).json(workspace);
@@ -20,10 +25,12 @@ workspaceRouter.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// Get all workspaces
+// Get all workspaces for the user
 workspaceRouter.get('/', async (req: Request, res: Response) => {
   try {
-    const workspaces = await prisma.workspace.findMany();
+    const workspaces = await prisma.workspace.findMany({
+      where: { userId: req.user.id }
+    });
     res.status(200).json(workspaces);
   } catch (error) {
     console.error(error);
@@ -35,8 +42,11 @@ workspaceRouter.get('/', async (req: Request, res: Response) => {
 workspaceRouter.get('/:id', async (req: Request, res: Response) => {
   try {
     const workspaceId = parseInt(req.params.id);
-    const workspace = await prisma.workspace.findUnique({
-      where: { id: workspaceId },
+    const workspace = await prisma.workspace.findFirst({
+      where: { 
+        id: workspaceId,
+        userId: req.user.id
+      },
       include: {
         agents: {
           include: { agent: true }
@@ -48,8 +58,8 @@ workspaceRouter.get('/:id', async (req: Request, res: Response) => {
     });
 
     if (!workspace) {
-        res.status(404).json({ error: 'Workspace not found' });
-        return;
+      res.status(404).json({ error: 'Workspace not found' });
+      return;
     }
 
     res.status(200).json(workspace);

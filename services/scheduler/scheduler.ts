@@ -117,6 +117,7 @@ export class SchedulerService {
     fixedTime?: Date;
     timezone?: string;
     metadata?: any;
+    userId: string;
   }) {
     const schedule = await prisma.schedule.create({
       data: {

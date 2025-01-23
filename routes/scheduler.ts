@@ -19,6 +19,7 @@ const createScheduleSchema = z.object({
     fixedTime: z.string().optional(), // ISO date string
     timezone: z.string().optional(),
     metadata: z.record(z.any()).optional(),
+    userId: z.string(),
   }),
 });
 
